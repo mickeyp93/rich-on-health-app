@@ -42,6 +42,7 @@ function renderLock() {
   document.getElementById('tabs').style.display = 'none';
   document.getElementById('app').innerHTML = `
     <h1>Rich On Health</h1>
+    <p class="meta">v5 · PIN gate</p>
     <p class="sub">${setup ? 'Set a PIN to protect this app on your phone (min 4 characters).' : 'Enter your PIN to unlock.'}</p>
     <div class="card">
       <input class="field" id="pin-input" type="password" inputmode="numeric" autocomplete="one-time-code" placeholder="${setup ? 'Create PIN' : 'PIN'}" />
