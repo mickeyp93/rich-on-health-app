@@ -169,17 +169,16 @@ function londonParts(d = new Date()) {
   return { key: `${parts.year}-${parts.month}-${parts.day}`, dow: map[parts.weekday] || 'mon', label: parts.weekday };
 }
 function weekKeys() {
-  // Mon-Sun of current London week containing today
-  const now = new Date();
-  const { key, dow } = londonParts(now);
+  const { key, dow } = londonParts();
   const idx = DAY_IDS.indexOf(dow);
-  // Build from today going back/forward using noon UTC tricks — simpler: store relative dates
   const today = new Date(key + 'T12:00:00Z');
   const monday = new Date(today);
   monday.setUTCDate(today.getUTCDate() - idx);
   return DAY_IDS.map((id, i) => {
     const d = new Date(monday);
     d.setUTCDate(monday.getUTCDate() + i);
+    const parts = londonParts(d);
+    // londonParts on a Date uses that instant — for UTC noon keys this matches London date in BST/GMT for our strip
     const y = d.getUTCFullYear();
     const m = String(d.getUTCMonth()+1).padStart(2,'0');
     const day = String(d.getUTCDate()).padStart(2,'0');
@@ -268,29 +267,97 @@ function wireCommon() {
   };
   const voiceBtn = document.getElementById('voice-btn');
   const diaryText = document.getElementById('diary-text');
-  if (voiceBtn && diaryText) {
-    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SR) {
-      voiceBtn.onclick = () => showToast('Voice not supported — type instead');
-    } else {
-      const rec = new SR();
-      rec.lang = 'en-GB';
-      rec.onresult = (e) => {
-        let t = '';
-        for (let i = 0; i < e.results.length; i++) t += e.results[i][0].transcript;
-        diaryText.value = (diaryText.value ? diaryText.value + ' ' : '') + t;
-      };
-      voiceBtn.onclick = () => { try { rec.start(); showToast('Listening…'); } catch (e) { showToast('Mic busy'); } };
-    }
-  }
+  if (voiceBtn && diaryText) wireVoice(voiceBtn, diaryText);
 }
+
+/** iPhone Home Screen PWAs often crash on SpeechRecognition — guard hard. */
+function isIosStandalone() {
+  const ua = navigator.userAgent || '';
+  const iOS = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const standalone = window.navigator.standalone === true || window.matchMedia('(display-mode: standalone)').matches;
+  return iOS && standalone;
+}
+
+let _rec = null;
+let _listening = false;
+
+function wireVoice(voiceBtn, diaryText) {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR || isIosStandalone()) {
+    voiceBtn.textContent = 'Type diary (voice off on Home Screen)';
+    voiceBtn.onclick = () => {
+      diaryText.focus();
+      showToast(isIosStandalone()
+        ? 'Voice can crash the iPhone app — type here, or open in Safari for mic'
+        : 'Voice not supported — type instead');
+    };
+    return;
+  }
+
+  voiceBtn.onclick = () => {
+    if (_listening && _rec) {
+      try { _rec.stop(); } catch (e) {}
+      return;
+    }
+    try {
+      if (_rec) {
+        try { _rec.abort(); } catch (e) {}
+        _rec = null;
+      }
+      const rec = new SR();
+      _rec = rec;
+      rec.lang = 'en-GB';
+      rec.interimResults = false;
+      rec.continuous = false;
+      rec.maxAlternatives = 1;
+      rec.onstart = () => {
+        _listening = true;
+        voiceBtn.textContent = 'Listening… tap to stop';
+        showToast('Listening…');
+      };
+      rec.onresult = (e) => {
+        try {
+          let t = '';
+          for (let i = 0; i < e.results.length; i++) {
+            if (e.results[i] && e.results[i][0]) t += e.results[i][0].transcript;
+          }
+          t = (t || '').trim();
+          if (!t) return;
+          const box = document.getElementById('diary-text') || diaryText;
+          box.value = (box.value ? box.value + ' ' : '') + t;
+          showToast('Captured — tap Save diary');
+        } catch (err) {
+          showToast('Could not read speech — type instead');
+        }
+      };
+      rec.onerror = (e) => {
+        _listening = false;
+        voiceBtn.textContent = 'Talk to diary';
+        const err = (e && e.error) || '';
+        if (err === 'not-allowed') showToast('Mic blocked — allow microphone or type');
+        else if (err === 'no-speech') showToast('No speech heard — try again or type');
+        else showToast('Voice error — type instead');
+      };
+      rec.onend = () => {
+        _listening = false;
+        voiceBtn.textContent = 'Talk to diary';
+      };
+      rec.start();
+    } catch (err) {
+      _listening = false;
+      voiceBtn.textContent = 'Talk to diary';
+      showToast('Voice failed — type your diary note');
+    }
+  };
+}
+
 
 function renderLock() {
   const setup = !hasPin();
   document.getElementById('tabs').style.display = 'none';
   document.getElementById('app').innerHTML = `
     <div class="topbar"><h1>Rich On Health</h1></div>
-    <p class="meta">v7.1 · PIN gate</p>
+    <p class="meta">v7.2 · PIN gate</p>
     <p class="sub">${setup ? 'Set a PIN (min 4). Stays on this phone.' : 'Enter PIN to unlock.'}</p>
     <div class="card">
       <input class="field" id="pin-input" type="password" inputmode="numeric" autocomplete="one-time-code" placeholder="${setup?'Create PIN':'PIN'}" />
