@@ -290,7 +290,7 @@ function renderLock() {
   document.getElementById('tabs').style.display = 'none';
   document.getElementById('app').innerHTML = `
     <div class="topbar"><h1>Rich On Health</h1></div>
-    <p class="meta">v7 · PIN gate</p>
+    <p class="meta">v7.1 · PIN gate</p>
     <p class="sub">${setup ? 'Set a PIN (min 4). Stays on this phone.' : 'Enter PIN to unlock.'}</p>
     <div class="card">
       <input class="field" id="pin-input" type="password" inputmode="numeric" autocomplete="one-time-code" placeholder="${setup?'Create PIN':'PIN'}" />
@@ -319,19 +319,31 @@ function renderLock() {
 function renderWeekReview() {
   const week = weekKeys();
   const d = load();
+  const bit = (ok, yes, no) => ok ? `<span class="ok">${yes}</span>` : `<span class="miss">${no}</span>`;
   const rows = week.map(w => {
     const bucket = (d.days && d.days[w.key]) || { dones:{}, diary:[] };
-    const dones = Object.keys(bucket.dones || {}).filter(k => !k.endsWith(':at') && bucket.dones[k]);
-    const meals = dones.filter(k => k.startsWith('meals:')).length;
-    const gym = dones.some(k => k === 'gym:session' || k === 'gym:eased');
+    const dones = bucket.dones || {};
+    const on = (k) => !!(dones[k] && !String(k).endsWith(':at'));
+    const mealN = Object.keys(dones).filter(k => k.startsWith('meals:') && !k.endsWith(':at') && dones[k]).length;
+    const gym = on('gym:session') || on('gym:eased');
+    const am = on('health:am-meds');
+    const pm = on('health:pm-tab');
+    const mind = on('mind:prayer-am') || on('mind:prayer-pm') || ['c7','c10','c13','c17','c20'].some(id => on('mind:'+id));
+    const debt = on('debt:spoke') || on('debt:hold') || on('debt:phone');
     const diary = (bucket.diary || []).length;
     return `<div class="review-row"><span><strong>${w.label}</strong> ${w.key.slice(5)}</span>
-      <span>${meals ? `<span class="ok">${meals} meal ✓</span>` : '<span class="miss">meals —</span>'} ·
-      ${gym ? '<span class="ok">gym ✓</span>' : '<span class="miss">gym —</span>'} ·
-      ${diary ? `<span class="ok">${diary} diary</span>` : '<span class="miss">diary —</span>'}</span></div>`;
+      <span style="text-align:right;line-height:1.45">
+        ${mealN ? bit(true, mealN+' meal', '') : bit(false,'','meals —')} ·
+        ${bit(gym,'gym ✓','gym —')} ·
+        ${bit(am,'am meds ✓','am —')} ·
+        ${bit(pm,'night ✓','night —')}<br/>
+        ${bit(mind,'mind ✓','mind —')} ·
+        ${debt ? bit(true,'debt ✓','') : bit(false,'','debt —')} ·
+        ${diary ? bit(true, diary+' diary','') : bit(false,'','diary —')}
+      </span></div>`;
   }).join('');
   return `<div class="card"><h2>This week’s review</h2>
-    <p class="meta">Checklist snapshot — not a score. Use it Friday night / Sunday to plan.</p>
+    <p class="meta">What held / what slipped — checklist only, not a failure scoreboard. One kinder next step when you plan.</p>
     <div class="review-grid">${rows}</div>
   </div>`;
 }
