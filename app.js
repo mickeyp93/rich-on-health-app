@@ -7,7 +7,69 @@ const TABS = [
   { id: 'debt', label: 'Debt' }
 ];
 
-const STORE = 'roh-v1';
+const STORE = 'roh-v2';
+const PIN_KEY = 'roh-pin-hash';
+const UNLOCK_KEY = 'roh-unlocked-session';
+
+async function sha256(text) {
+  const data = new TextEncoder().encode(text);
+  const buf = await crypto.subtle.digest('SHA-256', data);
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+function hasPin() { return !!localStorage.getItem(PIN_KEY); }
+function isUnlocked() { return sessionStorage.getItem(UNLOCK_KEY) === '1'; }
+function lockNow() { sessionStorage.removeItem(UNLOCK_KEY); render(); }
+
+async function setPin(pin) {
+  if (!pin || pin.length < 4) throw new Error('Use at least 4 characters');
+  localStorage.setItem(PIN_KEY, await sha256(pin));
+  sessionStorage.setItem(UNLOCK_KEY, '1');
+}
+
+async function tryUnlock(pin) {
+  const hash = localStorage.getItem(PIN_KEY);
+  if (!hash) return false;
+  if ((await sha256(pin)) === hash) {
+    sessionStorage.setItem(UNLOCK_KEY, '1');
+    return true;
+  }
+  return false;
+}
+
+function renderLock() {
+  const setup = !hasPin();
+  document.getElementById('tabs').style.display = 'none';
+  document.getElementById('app').innerHTML = `
+    <h1>Rich On Health</h1>
+    <p class="sub">${setup ? 'Set a PIN to protect this app on your phone (min 4 characters).' : 'Enter your PIN to unlock.'}</p>
+    <div class="card">
+      <input class="field" id="pin-input" type="password" inputmode="numeric" autocomplete="one-time-code" placeholder="${setup ? 'Create PIN' : 'PIN'}" />
+      ${setup ? '<input class="field" id="pin-confirm" type="password" inputmode="numeric" placeholder="Confirm PIN" />' : ''}
+      <button class="btn accent" id="pin-go" type="button">${setup ? 'Save PIN & open' : 'Unlock'}</button>
+      <p class="meta" id="pin-msg"></p>
+      <p class="note">PIN stays on this phone only. It does not make the public web link private.</p>
+    </div>`;
+  const go = document.getElementById('pin-go');
+  const msg = document.getElementById('pin-msg');
+  go.onclick = async () => {
+    const pin = document.getElementById('pin-input').value.trim();
+    try {
+      if (setup) {
+        const c = document.getElementById('pin-confirm').value.trim();
+        if (pin !== c) { msg.textContent = 'PINs don’t match.'; return; }
+        await setPin(pin);
+      } else {
+        if (!(await tryUnlock(pin))) { msg.textContent = 'Wrong PIN.'; return; }
+      }
+      document.getElementById('tabs').style.display = '';
+      render();
+    } catch (e) {
+      msg.textContent = e.message || 'Could not set PIN.';
+    }
+  };
+}
+
 
 const MEALS = {
   mon: {
@@ -224,7 +286,7 @@ function renderToday() {
     normal: 'Normal day: locked plates + planned session. Steps ~10k floor.',
     protect: 'Protect sleep: early tea, kitchen closed, tablet on time, put the phone down.'
   };
-  return `<h1>Today</h1>
+  return `<h1>Today <button class="day-btn" id="lock-btn" type="button" style="float:right;min-width:auto;padding:6px 10px;font-size:0.75rem">Lock</button></h1>
     <p class="sub">${todayKey()} · Europe/London · Whoop → action only (Habits fills this after the morning pull)</p>
     <div class="chips">
       <span class="chip">Mode: ${mode}</span>
@@ -338,8 +400,10 @@ function renderDebt() {
 const state = { tab: 'today', mealDay: dowId() };
 
 function render() {
+  if (!hasPin() || !isUnlocked()) { renderLock(); return; }
   const app = document.getElementById('app');
   const tabs = document.getElementById('tabs');
+  tabs.style.display = '';
   tabs.innerHTML = TABS.map(t => `<button class="tab ${state.tab===t.id?'active':''}" data-tab="${t.id}">${t.label}</button>`).join('');
   const map = { today: renderToday, meals: renderMeals, gym: renderGym, health: renderHealth, mind: renderMind, debt: renderDebt };
   app.innerHTML = map[state.tab]();
@@ -349,7 +413,10 @@ function render() {
   app.querySelectorAll('[data-mealday]').forEach(b => b.onclick = () => { state.mealDay = b.dataset.mealday; render(); });
   app.querySelectorAll('[data-mode]').forEach(b => b.onclick = () => setWhoopMode(b.dataset.mode));
   wireVoice(state.tab);
+  const lockBtn = document.getElementById('lock-btn');
+  if (lockBtn) lockBtn.onclick = () => lockNow();
 }
+
 
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('./sw.js').catch(()=>{});
