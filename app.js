@@ -128,22 +128,21 @@ const GYM = {
 };
 
 const DEBT = {
-  pinned: 'Festive Lighting job start: 9 Nov 2026',
+  pinned: 'Job start pinned in room — ask Debt for date if needed',
   holds: [
-    { name: 'Moorcroft', ref: '007760771559', bal: '£659.27', until: '2 Nov 2026' },
-    { name: 'Moorcroft / AO', ref: '008191572997', bal: '£955.38', until: '2 Nov 2026' },
-    { name: 'Tesco loan', ref: '40641230129965', bal: '£5,132.45', until: '28 Oct 2026' },
-    { name: 'Zinc / NatWest', ref: '55665071', bal: '£14,092.11', until: '28 Oct 2026' }
+    { name: 'Moorcroft (×2)', status: 'On hold', until: 'Early Nov' },
+    { name: 'Tesco loan', status: 'On hold', until: 'Late Oct' },
+    { name: 'Zinc / NatWest', status: 'On hold', until: 'Late Oct' }
   ],
   open: [
-    { name: 'Barclaycard', ref: '—', next: 'Next call block' },
-    { name: 'Very Pay', ref: 'E1445688', next: 'After Barclaycard' },
-    { name: 'Littlewoods', ref: 'E7684546', next: 'After Very' },
-    { name: 'Jacamo', ref: 'Y0902410', next: 'With Littlewoods' },
-    { name: 'Fluro', ref: 'SMPL80595090', next: 'Watch — default in progress' },
-    { name: 'Zopa', ref: '—', next: 'Watching mail' }
+    { name: 'Barclaycard', next: 'Next call block' },
+    { name: 'Very Pay', next: 'After Barclaycard' },
+    { name: 'Littlewoods', next: 'After Very' },
+    { name: 'Jacamo', next: 'With Littlewoods' },
+    { name: 'Fluro', next: 'Watch — default in progress' },
+    { name: 'Zopa', next: 'Watching mail' }
   ],
-  avoid: ['Monzo', 'Zable', 'Vodafone']
+  avoid: ['Do-not-contact list — ask Debt before dialling']
 };
 
 const PRAYER_AM = `Morning prayer / manifest (≈5 min)
@@ -336,7 +335,7 @@ function renderGym() {
 function renderHealth() {
   return `<h1>Health</h1>
     <p class="sub">Rails only — not a diagnosis. No Whoop numbers here.</p>
-    <div class="card"><div class="row">${doneBtn('health','art')} <div><strong>Morning ART</strong><div class="meta">Raltegravir + Abacavir with breakfast</div></div></div></div>
+    <div class="card"><div class="row">${doneBtn('health','art')} <div><strong>Morning ART</strong><div class="meta">As prescribed — with breakfast (details not stored on this public app)</div></div></div></div>
     <div class="card"><div class="row">${doneBtn('health','water')} <div><strong>Water ~3–3.5 L</strong><div class="meta">Roughly on track (PT days especially)</div></div></div></div>
     <div class="card"><div class="row">${doneBtn('health','mirta')} <div><strong>Mirtazapine ~8:00–8:30</strong><div class="meta">After kitchen closed · clinic overrides</div></div></div></div>
     <div class="card"><div class="row">${doneBtn('health','jolt')} <div><strong>Evening jolt?</strong><div class="meta">Optional yes/no — checklist only</div></div></div></div>
@@ -379,14 +378,14 @@ function renderMind() {
 
 function renderDebt() {
   return `<h1>Debt</h1>
-    <p class="sub">Checklist only · no DOB / full card numbers · not a daily must</p>
+    <p class="sub">Status only on this public app · refs/balances live with Debt in the room · not a daily must</p>
     <div class="card"><strong>Pinned</strong><div class="meta">${DEBT.pinned}</div></div>
     <div class="card"><strong>Holds (28 Sep)</strong>
-      <ul>${DEBT.holds.map(h=>`<li><strong>${h.name}</strong> · ${h.ref} · ${h.bal} · until ${h.until}</li>`).join('')}</ul>
+      <ul>${DEBT.holds.map(h=>`<li><strong>${h.name}</strong> · ${h.status} · until ${h.until}</li>`).join('')}</ul>
     </div>
     <div class="card"><strong>Open (call order)</strong>
-      <ul>${DEBT.open.map(h=>`<li><strong>${h.name}</strong> · ${h.ref} · ${h.next}</li>`).join('')}</ul>
-      <div class="meta">Don’t contact: ${DEBT.avoid.join(' · ')}</div>
+      <ul>${DEBT.open.map(h=>`<li><strong>${h.name}</strong> · ${h.next}</li>`).join('')}</ul>
+      <div class="meta">${DEBT.avoid}</div>
     </div>
     <div class="card">
       <div class="row">${doneBtn('debt','spoke','SPOKE')}<div class="meta">Spoke to someone today</div></div>
