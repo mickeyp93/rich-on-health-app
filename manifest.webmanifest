@@ -1,7 +1,7 @@
 {
   "name": "Rich On Health",
   "short_name": "Health",
-  "description": "Today rails, meals, gym, health, mind, debt — checklist Done ticks",
+  "description": "Daily rails — meals, gym, health, mind, debt, learn",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
