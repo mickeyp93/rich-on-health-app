@@ -1,4 +1,4 @@
-const CACHE = 'roh-v6';
+const CACHE = 'roh-v61';
 const ASSETS = [
   './',
   './index.html',

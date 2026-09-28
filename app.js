@@ -42,7 +42,7 @@ function renderLock() {
   document.getElementById('tabs').style.display = 'none';
   document.getElementById('app').innerHTML = `
     <h1>Rich On Health</h1>
-    <p class="meta">v6 · PIN gate</p>
+    <p class="meta">v6.1 · PIN gate</p>
     <p class="sub">${setup ? 'Set a PIN to protect this app on your phone (min 4 characters).' : 'Enter your PIN to unlock.'}</p>
     <div class="card">
       <input class="field" id="pin-input" type="password" inputmode="numeric" autocomplete="one-time-code" placeholder="${setup ? 'Create PIN' : 'PIN'}" />
@@ -336,9 +336,9 @@ function renderGym() {
 function renderHealth() {
   return `<h1>Health</h1>
     <p class="sub">Rails only — not a diagnosis. No Whoop numbers here.</p>
-    <div class="card"><div class="row">${doneBtn('health','art')} <div><strong>Morning meds</strong><div class="meta">As prescribed — with breakfast (details not on this public app)</div></div></div></div>
+    <div class="card"><div class="row">${doneBtn('health','am-meds')} <div><strong>Morning meds</strong><div class="meta">As prescribed — with breakfast (details not on this public app)</div></div></div></div>
     <div class="card"><div class="row">${doneBtn('health','water')} <div><strong>Water ~3–3.5 L</strong><div class="meta">Roughly on track (PT days especially)</div></div></div></div>
-    <div class="card"><div class="row">${doneBtn('health','mirta')} <div><strong>Night tablet ~8:00–8:30</strong><div class="meta">After kitchen closed · clinic overrides</div></div></div></div>
+    <div class="card"><div class="row">${doneBtn('health','pm-tab')} <div><strong>Night tablet ~8:00–8:30</strong><div class="meta">After kitchen closed · clinic overrides</div></div></div></div>
     <div class="card"><div class="row">${doneBtn('health','jolt')} <div><strong>Evening jolt?</strong><div class="meta">Optional yes/no — checklist only</div></div></div></div>
     <div class="card"><div class="row">${doneBtn('health','snus')} <div><strong>Last snus logged</strong><div class="meta">Voice/type the time in the note</div></div></div></div>
     <div class="card"><strong>Open reminder</strong><div class="meta">Dr / urology follow-up · creatine held until cleared</div></div>
