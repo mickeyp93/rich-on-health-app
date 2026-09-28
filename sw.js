@@ -1,4 +1,4 @@
-const CACHE = 'roh-v72';
+const CACHE = 'roh-v8';
 const ASSETS = ['./','./index.html','./app.js','./styles.css','./manifest.webmanifest','./icons/icon-192.png','./icons/icon-512.png'];
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(ASSETS)).then(() => self.skipWaiting()));
@@ -9,7 +9,7 @@ self.addEventListener('activate', (e) => {
 self.addEventListener('fetch', (e) => {
   if (e.request.method !== 'GET') return;
   const url = new URL(e.request.url);
-  const shell = /index\.html|app\.js|styles\.css|sw\.js/.test(url.pathname) || /rich-on-health-app\/?$/.test(url.pathname);
+  const shell = /index\.html|app\.js|styles\.css|sw\.js|data\/live\.json/.test(url.pathname) || /rich-on-health-app\/?$/.test(url.pathname);
   if (shell) {
     e.respondWith(fetch(e.request).then((res) => {
       const copy = res.clone();

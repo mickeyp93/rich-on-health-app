@@ -225,6 +225,33 @@ function addDiary(dateKey, text, tag) {
 }
 
 const state = { tab: 'today', dayKey: londonParts().key, dayId: londonParts().dow, mealDay: londonParts().dow, review: false };
+let live = {
+  whoopMode: 'normal',
+  steps: { baseGoal: 10000, yesterday: null, carry: 0, todayGoal: 10000 },
+  focus: ''
+};
+
+async function refreshLive() {
+  try {
+    const res = await fetch('./data/live.json?t=' + Date.now(), { cache: 'no-store' });
+    if (!res.ok) return;
+    const data = await res.json();
+    live = Object.assign(live, data);
+    if (data.whoopMode) {
+      const d = dayBucket(londonParts().key);
+      if (!d.days[londonParts().key].whoop || d.days[londonParts().key].whoop === 'normal') {
+        d.days[londonParts().key].whoop = data.whoopMode;
+        save(d);
+      }
+    }
+  } catch (e) {}
+}
+
+function stepGoal() {
+  const s = (live && live.steps) || {};
+  return Number(s.todayGoal || s.baseGoal || 10000);
+}
+
 
 function doneBtn(dateKey, kind, id, label) {
   const on = isDone(dateKey, kind, id);
@@ -357,7 +384,7 @@ function renderLock() {
   document.getElementById('tabs').style.display = 'none';
   document.getElementById('app').innerHTML = `
     <div class="topbar"><h1>Rich On Health</h1></div>
-    <p class="meta">v7.2 · PIN gate</p>
+    <p class="meta">v8 · PIN gate</p>
     <p class="sub">${setup ? 'Set a PIN (min 4). Stays on this phone.' : 'Enter PIN to unlock.'}</p>
     <div class="card">
       <input class="field" id="pin-input" type="password" inputmode="numeric" autocomplete="one-time-code" placeholder="${setup?'Create PIN':'PIN'}" />
@@ -438,14 +465,33 @@ function renderToday() {
     <div class="diary-item"><div class="meta">${new Date(x.at).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})} · ${x.tag}</div>
     <div>${x.text}</div></div>`).join('') || '<p class="meta">No diary yet today — tell Habits what to add, or log how the day went.</p>';
 
+  const goal = stepGoal();
+  const yday = live.steps && live.steps.yesterday;
+  const carry = (live.steps && live.steps.carry) || 0;
+  const stepsDone = isDone(dateKey, 'gym', 'steps');
+  const pct = stepsDone ? 100 : Math.min(95, Math.round((0 / goal) * 100)); // progress fills when marked for now; Whoop live fill comes with morning sync
+  const focus = (live.focus || actions[mode]);
   return `<div class="topbar"><h1>Today</h1>
     <div><button class="icon-btn" id="review-btn" type="button">Week</button>
     <button class="icon-btn" id="lock-btn" type="button">Lock</button></div></div>
-    <p class="sub">${dateKey} · Europe/London</p>
+    <p class="sub">${dateKey} · London</p>
     ${dayStrip(dateKey)}
-    <div class="chips"><span class="chip on">Mode: ${mode}</span><span class="chip">${meal.training ? 'Training' : 'Rest'}</span></div>
 
-    <div class="card"><h2>What to do</h2>
+    <div class="hero">
+      <div class="kicker">${meal.training ? 'Training day' : 'Rest day'} · ${mode}</div>
+      <div class="big">${focus}</div>
+      <div class="step-box">
+        <div class="ring" style="--p:${pct}%"><span>${Math.round(goal/1000)}k</span></div>
+        <div>
+          <strong>Steps today</strong>
+          <div class="meta">Goal ${goal.toLocaleString('en-GB')}${carry ? ` (10k + ${carry.toLocaleString('en-GB')} carry)` : ''}</div>
+          <div class="meta">${yday == null ? 'Yesterday: waiting on morning Whoop' : `Yesterday: ${Number(yday).toLocaleString('en-GB')} steps`}</div>
+        </div>
+      </div>
+      <div style="margin-top:12px" class="row">${doneBtn(dateKey,'gym','steps')}<div class="meta">Mark when you’ve hit today’s step goal</div></div>
+    </div>
+
+    <div class="card next-card"><h2>Mode</h2>
       <p class="meta">${actions[mode]}</p>
       <div class="chips">
         <button type="button" class="day-btn ${mode==='ease'?'active':''}" data-mode="ease">Ease</button>
@@ -494,7 +540,7 @@ function renderGym() {
     <div class="card"><div class="row">${doneBtn(dateKey,'gym','session')}<div><strong>${g.session}</strong><div class="meta">${g.note}</div></div></div>
       <div style="margin-top:8px" class="row">${doneBtn(dateKey,'gym','eased','EASED')}<div class="meta">Lighter — still showed up</div></div>
     </div>
-    <div class="card"><div class="row">${doneBtn(dateKey,'gym','steps')}<div><strong>~10k steps</strong><div class="meta">Floor, not extra HIIT</div></div></div></div>
+    <div class="card"><div class="row">${doneBtn(dateKey,'gym','steps')}<div><strong>${stepGoal().toLocaleString('en-GB')} steps</strong><div class="meta">Base 10k + carry from shortfall (cap +5k). Floor, not extra HIIT.</div></div></div></div>
     <p class="note">If voice turns into punish/grind — stop. Ease + show up is the rail.</p>`;
 }
 
@@ -570,8 +616,9 @@ function render() {
 }
 
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(()=>{});
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
   const t = londonParts();
   state.dayKey = t.key; state.dayId = t.dow; state.mealDay = t.dow; state.tab = 'today';
+  await refreshLive();
   render();
 });
