@@ -1,13 +1,13 @@
 {
-  "updatedAt": "2026-09-28T17:00:00+01:00",
-  "date": "2026-09-28",
+  "updatedAt": "2026-09-29T07:28:00+01:00",
+  "date": "2026-09-29",
   "whoopMode": "normal",
   "steps": {
     "baseGoal": 10000,
     "yesterday": null,
     "carry": 0,
     "todayGoal": 10000,
-    "note": "Morning Whoop pull sets yesterday steps + carry (max +5000)."
+    "note": "Whoop session expired on box; steps/carry left at base until re-login."
   },
-  "focus": "Chilli tea early · night tablet · evening prayer · stop"
+  "focus": "Tue class 9:00 \u00b7 steps 10k \u00b7 water \u00b7 morning prayer"
 }
