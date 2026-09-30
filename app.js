@@ -125,7 +125,14 @@ function londonHour(d = new Date()) {
   }).format(d));
 }
 function intentBlocked(text) { return BLOCK_INTENT.test(text || ''); }
-function onRoughList(id) { return id === 'alarm' || id === 'meds-am' || id === 'meds-pm'; }
+function nightTabletOn(day) {
+  return londonHour() >= 17 || !!(day && day.eod);
+}
+function roughShows(id, nightOn) {
+  if (id === 'alarm' || id === 'meds-am') return true;
+  if (id === 'meds-pm') return !!nightOn;
+  return false;
+}
 
 async function sha256(text) {
   const data = new TextEncoder().encode(text);
@@ -312,7 +319,7 @@ function addPreset(dateKey, id) {
   if (!preset) return;
   const d = ensureDiary(dateKey);
   const day = d.days[dateKey];
-  if (day.rough && !onRoughList(id)) return;
+  if (day.rough && !roughShows(id, nightTabletOn(day))) return;
   if ((day.intentions || []).some((i) => i.id === id)) return;
   day.intentions.push({ id: preset.id, text: preset.text, done: false, why: '', hideRough: !!preset.hideRough });
   orderIntentions(day.intentions);
@@ -525,7 +532,7 @@ function renderLock() {
   document.getElementById('tabs').style.display = 'none';
   document.getElementById('app').innerHTML = `
     <div class="topbar"><h1>Rich On Health</h1></div>
-    <p class="meta">v11 · PIN gate</p>
+    <p class="meta">v12 · PIN gate</p>
     <p class="sub">${setup ? 'Set a PIN (min 4). Stays on this phone.' : 'Enter PIN to unlock.'}</p>
     <div class="card">
       <input class="field" id="pin-input" type="password" inputmode="numeric" autocomplete="one-time-code" placeholder="${setup?'Create PIN':'PIN'}" />
@@ -662,9 +669,10 @@ function renderDiary() {
   const day = d.days[dateKey];
   const rough = !!day.rough;
   const all = day.intentions || [];
-  const visible = all.filter((i) => !rough || onRoughList(i.id));
+  const nightOn = nightTabletOn(day);
+  const visible = all.filter((i) => !rough || roughShows(i.id, nightOn));
   const have = new Set(all.map((i) => i.id));
-  const chips = DIARY_DEFAULTS.filter((x) => !have.has(x.id) && !(rough && !onRoughList(x.id)));
+  const chips = DIARY_DEFAULTS.filter((x) => !have.has(x.id) && !(rough && !roughShows(x.id, nightOn)));
   const eod = !!day.eod || londonHour() >= 19;
   const open = visible.filter((i) => !i.done);
   const showAm = !day.prayerAmSeen && state.prayerPanel !== 'pm';
@@ -697,8 +705,10 @@ function renderDiary() {
     <div class="card">
       <button type="button" class="day-btn ${rough ? 'active' : ''}" id="rough-btn" aria-pressed="${rough ? 'true' : 'false'}">${rough ? 'Rough morning on' : 'Rough morning'}</button>
       <p class="meta">${rough
-        ? 'Only the first alarm, morning meds, and the night tablet are on the list.'
-        : 'If the morning is rough, only the first alarm, morning meds, and the night tablet stay on the list.'}</p>
+        ? (nightOn
+          ? 'Only the first alarm, morning meds, and the night tablet are on the list.'
+          : 'Only the first alarm and morning meds are on the list. The night tablet shows from 17:00, or when end of day is open.')
+        : 'If the morning is rough, only the first alarm and morning meds stay on the list until evening. The night tablet shows from 17:00, or when end of day is open.'}</p>
     </div>
     <div class="card"><h2>Intentions</h2>
       <p class="meta">Tick what happens. Add or remove a line.</p>
