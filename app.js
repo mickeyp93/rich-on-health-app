@@ -100,23 +100,31 @@ const LEARN = [
   { id:'l10', title:'Scams & “signals”', body:'No paid signal group, no “guaranteed” robot, no depositing to random apps. Regulated broker only when you go live — and only with money you can lose.' }
 ];
 
-const PRAYER_AM = `Morning prayer / manifest (≈5 min)
+const DIARY_DEFAULTS = [
+  { id:'alarm', short:'First alarm', hideRough:false, text:'Up at the first alarm — feet on the floor, no snooze' },
+  { id:'bed', short:'Out of bed', hideRough:false, text:'Out of bed, even when I feel like shit' },
+  { id:'teeth', short:'Brush teeth', hideRough:false, text:'Brush teeth' },
+  { id:'shower', short:'Shower', hideRough:true, text:'Shower' },
+  { id:'moist', short:'Moisturise', hideRough:true, text:'Moisturise' },
+  { id:'food', short:'Breakfast', hideRough:true, text:"When breakfast happens, eggs if I feel well, easy food if I don't." },
+  { id:'tea', short:'Kitchen closed', hideRough:false, text:'Tea is finished by about 7, then the kitchen stays closed.' },
+  { id:'meds-am', short:'Morning meds', hideRough:false, text:'When breakfast happens, I take morning meds.' },
+  { id:'meds-pm', short:'Night tablet', hideRough:false, text:'When the kitchen is closed, I take the night tablet.' }
+];
 
-Show up for this day.
-Thank You for breath, for another chance to follow through.
-I ask for steadiness — body, mind, and the work in front of me.
-Help me keep the rails: food, training, meds, kindness.
-I release what I cannot fix in this hour.
-Amen / so it is.`;
+const BLOCK_INTENT = /\b(gym|gyms|walk|walking|pt|whoop|steps?|calories?|calorie|protein|proteins)\b|personal training/i;
 
-const PRAYER_PM = `Evening prayer / kind close (≈5 min)
-
-Thank You for what got done today — even the small things.
-I put the phone and the spiral down until morning.
-I forgive the missed bits without punishing myself.
-Watch over my rest; let the night tablet do its work.
-I am still building. That is enough for tonight.
-Amen / so it is.`;
+function esc(s) {
+  return String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+  }[c]));
+}
+function londonHour(d = new Date()) {
+  return Number(new Intl.DateTimeFormat('en-GB', {
+    timeZone:'Europe/London', hour:'2-digit', hourCycle:'h23'
+  }).format(d));
+}
+function intentBlocked(text) { return BLOCK_INTENT.test(text || ''); }
 
 async function sha256(text) {
   const data = new TextEncoder().encode(text);
@@ -224,7 +232,7 @@ function addDiary(dateKey, text, tag) {
   render();
 }
 
-const state = { tab: 'today', dayKey: londonParts().key, dayId: londonParts().dow, mealDay: londonParts().dow, review: false };
+const state = { tab: 'today', dayKey: londonParts().key, dayId: londonParts().dow, mealDay: londonParts().dow, review: false, diary: false, prayerPanel: null };
 let live = {
   whoopMode: 'normal',
   steps: { baseGoal: 10000, yesterday: null, carry: 0, todayGoal: 10000 },
@@ -253,6 +261,136 @@ function stepGoal() {
 }
 
 
+function ensureDiary(dateKey) {
+  const d = dayBucket(dateKey);
+  const day = d.days[dateKey];
+  if (!Array.isArray(day.intentions)) {
+    day.intentions = DIARY_DEFAULTS.map((x) => ({
+      id: x.id, text: x.text, done: false, why: '', hideRough: !!x.hideRough
+    }));
+    day.rough = !!day.rough;
+    day.eod = !!day.eod;
+    day.prayerAmSeen = !!day.prayerAmSeen;
+    save(d);
+  }
+  return d;
+}
+function orderIntentions(list) {
+  list.sort((a, b) => {
+    const ia = DIARY_DEFAULTS.findIndex((x) => x.id === a.id);
+    const ib = DIARY_DEFAULTS.findIndex((x) => x.id === b.id);
+    if (ia === -1 && ib === -1) return 0;
+    if (ia === -1) return 1;
+    if (ib === -1) return -1;
+    return ia - ib;
+  });
+}
+function setRough(dateKey, on) {
+  const d = ensureDiary(dateKey);
+  d.days[dateKey].rough = !!on;
+  if (save(d)) showToast('Saved');
+  render();
+}
+function toggleIntent(dateKey, id) {
+  const d = ensureDiary(dateKey);
+  const item = (d.days[dateKey].intentions || []).find((i) => i.id === id);
+  if (!item) return;
+  item.done = !item.done;
+  if (item.done) item.why = '';
+  save(d);
+  render();
+}
+function removeIntent(dateKey, id) {
+  const d = ensureDiary(dateKey);
+  d.days[dateKey].intentions = (d.days[dateKey].intentions || []).filter((i) => i.id !== id);
+  save(d);
+  render();
+}
+function addPreset(dateKey, id) {
+  const preset = DIARY_DEFAULTS.find((x) => x.id === id);
+  if (!preset) return;
+  const d = ensureDiary(dateKey);
+  const day = d.days[dateKey];
+  if (day.rough && preset.hideRough) return;
+  if ((day.intentions || []).some((i) => i.id === id)) return;
+  day.intentions.push({ id: preset.id, text: preset.text, done: false, why: '', hideRough: !!preset.hideRough });
+  orderIntentions(day.intentions);
+  save(d);
+  render();
+}
+function addCustomIntent(dateKey, text) {
+  const t = String(text || '').replace(/\s+/g, ' ').trim();
+  if (!t) return;
+  if (intentBlocked(t)) { showToast('Not on this list'); return; }
+  const d = ensureDiary(dateKey);
+  const list = d.days[dateKey].intentions;
+  if (list.some((i) => i.text.toLowerCase() === t.toLowerCase())) { showToast('Already on the list'); return; }
+  list.push({ id: 'c' + Date.now(), text: t.slice(0, 140), done: false, why: '', hideRough: false });
+  save(d);
+  render();
+}
+function saveWhy(dateKey, id, text) {
+  const d = ensureDiary(dateKey);
+  const item = (d.days[dateKey].intentions || []).find((i) => i.id === id);
+  if (!item || item.done) return;
+  item.why = String(text || '').replace(/\s+/g, ' ').trim().slice(0, 240);
+  save(d);
+}
+function setEod(dateKey) {
+  const d = ensureDiary(dateKey);
+  d.days[dateKey].eod = true;
+  save(d);
+  render();
+}
+function dismissPrayer(dateKey) {
+  if (state.prayerPanel === 'pm') {
+    state.prayerPanel = null;
+    render();
+    return;
+  }
+  const d = ensureDiary(dateKey);
+  d.days[dateKey].prayerAmSeen = true;
+  save(d);
+  state.prayerPanel = null;
+  render();
+}
+function wireDiary() {
+  const open = document.getElementById('open-diary');
+  if (open) open.onclick = () => { state.diary = true; state.review = false; render(); };
+  const back = document.getElementById('diary-back');
+  if (back) back.onclick = () => { state.diary = false; state.prayerPanel = null; render(); };
+  const rough = document.getElementById('rough-btn');
+  if (rough) rough.onclick = () => {
+    const d = ensureDiary(state.dayKey);
+    setRough(state.dayKey, !d.days[state.dayKey].rough);
+  };
+  document.querySelectorAll('[data-intent]').forEach((b) => {
+    b.onclick = () => toggleIntent(state.dayKey, b.dataset.intent);
+  });
+  document.querySelectorAll('[data-remove]').forEach((b) => {
+    b.onclick = () => removeIntent(state.dayKey, b.dataset.remove);
+  });
+  document.querySelectorAll('[data-add-preset]').forEach((b) => {
+    b.onclick = () => addPreset(state.dayKey, b.dataset.addPreset);
+  });
+  const addBtn = document.getElementById('intent-add');
+  const addInput = document.getElementById('intent-text');
+  if (addBtn && addInput) {
+    const go = () => addCustomIntent(state.dayKey, addInput.value);
+    addBtn.onclick = go;
+    addInput.onkeydown = (e) => { if (e.key === 'Enter') { e.preventDefault(); go(); } };
+  }
+  document.querySelectorAll('[data-why]').forEach((el) => {
+    el.oninput = () => saveWhy(state.dayKey, el.dataset.why, el.value);
+  });
+  const eod = document.getElementById('eod-btn');
+  if (eod) eod.onclick = () => setEod(state.dayKey);
+  const eve = document.getElementById('evening-prayer');
+  if (eve) eve.onclick = () => { state.prayerPanel = 'pm'; render(); };
+  const dis = document.getElementById('prayer-dismiss');
+  if (dis) dis.onclick = () => dismissPrayer(state.dayKey);
+}
+
 function doneBtn(dateKey, kind, id, label) {
   const on = isDone(dateKey, kind, id);
   return `<button type="button" class="done ${on?'on':''}" data-date="${dateKey}" data-kind="${kind}" data-id="${id}">${on ? 'DONE ✓' : (label || 'DONE')}</button>`;
@@ -276,6 +414,7 @@ function wireCommon() {
       state.dayId = b.dataset.jumpid;
       state.mealDay = b.dataset.jumpid;
       state.review = false;
+      state.prayerPanel = null;
       render();
     };
   });
@@ -295,6 +434,7 @@ function wireCommon() {
   const voiceBtn = document.getElementById('voice-btn');
   const diaryText = document.getElementById('diary-text');
   if (voiceBtn && diaryText) wireVoice(voiceBtn, diaryText);
+  wireDiary();
 }
 
 /** iPhone Home Screen PWAs often crash on SpeechRecognition — guard hard. */
@@ -384,7 +524,7 @@ function renderLock() {
   document.getElementById('tabs').style.display = 'none';
   document.getElementById('app').innerHTML = `
     <div class="topbar"><h1>Rich On Health</h1></div>
-    <p class="meta">v8 · PIN gate</p>
+    <p class="meta">v9 · PIN gate</p>
     <p class="sub">${setup ? 'Set a PIN (min 4). Stays on this phone.' : 'Enter PIN to unlock.'}</p>
     <div class="card">
       <input class="field" id="pin-input" type="password" inputmode="numeric" autocomplete="one-time-code" placeholder="${setup?'Create PIN':'PIN'}" />
@@ -424,7 +564,10 @@ function renderWeekReview() {
     const pm = on('health:pm-tab');
     const mind = on('mind:prayer-am') || on('mind:prayer-pm') || ['c7','c10','c13','c17','c20'].some(id => on('mind:'+id));
     const debt = on('debt:spoke') || on('debt:hold') || on('debt:phone');
-    const diary = (bucket.diary || []).length;
+    const visibleIntent = (bucket.intentions || []).filter((i) => !(bucket.rough && i.hideRough));
+    const ticked = visibleIntent.filter((i) => i.done).length;
+    const diaryNotes = (bucket.diary || []).length;
+    const diaryBit = ticked ? bit(true, ticked+' ticked','') : (diaryNotes ? bit(true, diaryNotes+' notes','') : bit(false,'','diary —'));
     return `<div class="review-row"><span><strong>${w.label}</strong> ${w.key.slice(5)}</span>
       <span style="text-align:right;line-height:1.45">
         ${mealN ? bit(true, mealN+' meal', '') : bit(false,'','meals —')} ·
@@ -433,7 +576,7 @@ function renderWeekReview() {
         ${bit(pm,'night ✓','night —')}<br/>
         ${bit(mind,'mind ✓','mind —')} ·
         ${debt ? bit(true,'debt ✓','') : bit(false,'','debt —')} ·
-        ${diary ? bit(true, diary+' diary','') : bit(false,'','diary —')}
+        ${diaryBit}
       </span></div>`;
   }).join('');
   return `<div class="card"><h2>This week’s review</h2>
@@ -443,6 +586,7 @@ function renderWeekReview() {
 }
 
 function renderToday() {
+  if (state.diary) return renderDiary();
   const dayId = state.dayId;
   const dateKey = state.dayKey;
   const meal = MEALS[dayId];
@@ -461,10 +605,6 @@ function renderToday() {
       <button class="icon-btn" id="lock-btn" type="button">Lock</button></div></div>
       ${dayStrip(dateKey)}${renderWeekReview()}`;
   }
-  const diaryHtml = (bucket.diary || []).slice().reverse().map(x => `
-    <div class="diary-item"><div class="meta">${new Date(x.at).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})} · ${x.tag}</div>
-    <div>${x.text}</div></div>`).join('') || '<p class="meta">No diary yet today — tell Habits what to add, or log how the day went.</p>';
-
   const goal = stepGoal();
   const yday = live.steps && live.steps.yesterday;
   const carry = (live.steps && live.steps.carry) || 0;
@@ -508,14 +648,68 @@ function renderToday() {
       ${meal.meals.map(m => `<div style="margin-top:8px" class="row">${doneBtn(dateKey,'meals', dayId+'-'+m.id)}<div><strong>${m.title}</strong></div></div>`).join('')}
     </div>
 
-    <div class="card"><h2>Diary</h2>
-      <p class="meta">Tell Habits what to add, or log the day. Saves on this phone.</p>
-      <button class="btn ghost" id="voice-btn" type="button">Talk to diary</button>
-      <textarea class="field" id="diary-text" rows="3" placeholder="What happened / what to add…"></textarea>
-      <button class="btn accent" id="diary-save" type="button">Save diary</button>
-      <div style="margin-top:12px">${diaryHtml}</div>
+    <div class="card" id="diary-card">
+      <h2>Diary</h2>
+      <p class="meta">Intentions for today. Tick what happens.</p>
+      <button class="btn accent" id="open-diary" type="button">Open diary</button>
     </div>`;
 }
+
+function renderDiary() {
+  const dateKey = state.dayKey;
+  const d = ensureDiary(dateKey);
+  const day = d.days[dateKey];
+  const rough = !!day.rough;
+  const all = day.intentions || [];
+  const visible = all.filter((i) => !(rough && i.hideRough));
+  const have = new Set(all.map((i) => i.id));
+  const chips = DIARY_DEFAULTS.filter((x) => !have.has(x.id) && !(rough && x.hideRough));
+  const eod = !!day.eod || londonHour() >= 19;
+  const open = visible.filter((i) => !i.done);
+  const showAm = !day.prayerAmSeen && state.prayerPanel !== 'pm';
+  const showPm = state.prayerPanel === 'pm';
+  const prayer = (showAm || showPm) ? `<div class="card prayer-panel" id="prayer-panel">
+      <div class="placeholder-mark">Placeholder</div>
+      <h2>${showPm ? 'Evening prayer' : 'Morning prayer'}</h2>
+      <div class="prayer">${showPm ? 'Evening prayer wording comes from Wellbeing.' : 'Morning prayer wording comes from Wellbeing.'}</div>
+      <button type="button" class="btn ghost" id="prayer-dismiss">Dismiss</button>
+    </div>` : '';
+  const rows = visible.map((i) => `<div class="intent ${i.done ? 'is-done' : ''}">
+      <button type="button" class="done ${i.done ? 'on' : ''}" data-intent="${esc(i.id)}">${i.done ? '✓' : 'Tick'}</button>
+      <div class="label">${esc(i.text)}</div>
+      <button type="button" class="icon-btn" data-remove="${esc(i.id)}">Remove</button>
+    </div>`).join('');
+  const chipHtml = chips.length ? `<div class="chips">${chips.map((c) => `<button type="button" class="chip" data-add-preset="${esc(c.id)}">${esc(c.short)}</button>`).join('')}</div>` : '';
+  const eodHtml = (eod && open.length) ? `<div class="card"><h2>Still open</h2>
+      <p class="meta">One line on why. Ticked items stay as they are.</p>
+      ${open.map((i) => `<div class="diary-item"><div>${esc(i.text)}</div>
+        <input class="field" data-why="${esc(i.id)}" maxlength="240" placeholder="One line on why" value="${esc(i.why)}" /></div>`).join('')}
+    </div>` : ((!eod && open.length) ? `<button class="btn ghost" id="eod-btn" type="button">End of day</button>` : '');
+  return `<div class="topbar"><h1>Diary</h1>
+      <div><button class="icon-btn" id="diary-back" type="button">Back</button>
+      <button class="icon-btn" id="lock-btn" type="button">Lock</button></div></div>
+    <p class="sub">${esc(dateKey)} · London</p>
+    ${dayStrip(dateKey)}
+    ${prayer}
+    <div class="card">
+      <button type="button" class="day-btn ${rough ? 'active' : ''}" id="rough-btn" aria-pressed="${rough ? 'true' : 'false'}">${rough ? 'Rough morning on' : 'Rough morning'}</button>
+      <p class="meta">${rough
+        ? 'Shower, moisturise, and breakfast detail are hidden. Alarm stays: feet on the floor, no snooze.'
+        : 'If the morning is rough, shower, moisturise, and breakfast detail come off the list.'}</p>
+    </div>
+    <div class="card"><h2>Intentions</h2>
+      <p class="meta">Tick what happens. Add or remove a line.</p>
+      ${rows || '<p class="meta">Nothing on the list.</p>'}
+    </div>
+    <div class="card"><h2>Add</h2>
+      ${chipHtml}
+      <input class="field" id="intent-text" maxlength="140" placeholder="Add an intention" autocomplete="off" />
+      <button class="btn accent" id="intent-add" type="button">Add</button>
+    </div>
+    ${eodHtml}
+    <button class="btn ghost" id="evening-prayer" type="button">Evening prayer</button>`;
+}
+
 
 function renderMeals() {
   const dayId = state.mealDay || state.dayId;
@@ -560,17 +754,14 @@ function renderHealth() {
 function renderMind() {
   const dateKey = state.dayKey;
   return `<div class="topbar"><h1>Mind</h1></div>
-    <p class="sub">Prompts + prayer · checklist not a score</p>
+    <p class="sub">Check-ins · not a score</p>
     ${dayStrip(dateKey)}
-    <div class="card"><strong>Morning prayer</strong><div class="prayer">${PRAYER_AM}</div>
-      <div class="row">${doneBtn(dateKey,'mind','prayer-am')}<div class="meta">With 7am set-up</div></div></div>
+    <div class="card"><strong>Prayer</strong><div class="meta">Morning and evening prayer open on Diary. Wording comes from Wellbeing.</div></div>
     <div class="card"><strong>Check-ins</strong>
       <ul><li>7am gratitude / affirmation / win</li><li>10am steady / rushed / talking down</li><li>1pm depleted / wired / steady</li><li>5pm follow-through + kinder sentence</li><li>8pm put down + kind close</li></ul>
       <div class="row">${doneBtn(dateKey,'mind','c7','7am')}${doneBtn(dateKey,'mind','c10','10am')}${doneBtn(dateKey,'mind','c13','1pm')}</div>
       <div class="row" style="margin-top:8px">${doneBtn(dateKey,'mind','c17','5pm')}${doneBtn(dateKey,'mind','c20','8pm')}</div>
-    </div>
-    <div class="card"><strong>Evening prayer</strong><div class="prayer">${PRAYER_PM}</div>
-      <div class="row">${doneBtn(dateKey,'mind','prayer-pm')}<div class="meta">Hard stop after</div></div></div>`;
+    </div>`;
 }
 
 function renderDebt() {
@@ -611,7 +802,14 @@ function render() {
   tabs.innerHTML = TABS.map(t => `<button type="button" class="tab ${state.tab===t.id?'active':''}" data-tab="${t.id}">${t.label}</button>`).join('');
   const map = { today:renderToday, meals:renderMeals, gym:renderGym, health:renderHealth, mind:renderMind, debt:renderDebt, learn:renderLearn };
   app.innerHTML = map[state.tab]();
-  tabs.querySelectorAll('.tab').forEach(b => b.onclick = () => { state.tab = b.dataset.tab; state.review = false; if (b.dataset.tab==='today') { const t=londonParts(); state.dayKey=t.key; state.dayId=t.dow; } render(); });
+  tabs.querySelectorAll('.tab').forEach(b => b.onclick = () => {
+    state.tab = b.dataset.tab;
+    state.review = false;
+    state.diary = false;
+    state.prayerPanel = null;
+    if (b.dataset.tab==='today') { const t=londonParts(); state.dayKey=t.key; state.dayId=t.dow; }
+    render();
+  });
   wireCommon();
 }
 
