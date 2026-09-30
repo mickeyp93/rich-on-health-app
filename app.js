@@ -622,6 +622,7 @@ function renderToday() {
   return `<div class="topbar"><h1>Today</h1>
     <div><button class="icon-btn" id="review-btn" type="button">Week</button>
     <button class="icon-btn" id="lock-btn" type="button">Lock</button></div></div>
+    <button class="btn accent" id="open-diary" type="button">Open diary</button>
     <p class="sub">${dateKey} · London</p>
     ${dayStrip(dateKey)}
 
@@ -655,12 +656,7 @@ function renderToday() {
       <div style="margin-top:8px" class="row">${doneBtn(dateKey,'gym','eased','EASED')}<div class="meta">Lighter loads — still counts</div></div>
       ${meal.meals.map(m => `<div style="margin-top:8px" class="row">${doneBtn(dateKey,'meals', dayId+'-'+m.id)}<div><strong>${m.title}</strong></div></div>`).join('')}
     </div>
-
-    <div class="card" id="diary-card">
-      <h2>Diary</h2>
-      <p class="meta">Intentions for today. Tick what happens.</p>
-      <button class="btn accent" id="open-diary" type="button">Open diary</button>
-    </div>`;
+`;
 }
 
 const PRAYER_AM = [
