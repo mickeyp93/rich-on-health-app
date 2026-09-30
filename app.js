@@ -102,14 +102,14 @@ const LEARN = [
 
 const DIARY_DEFAULTS = [
   { id:'alarm', short:'First alarm', hideRough:false, text:'Up at the first alarm — feet on the floor, no snooze' },
-  { id:'bed', short:'Out of bed', hideRough:false, text:'Out of bed, even when I feel like shit' },
-  { id:'teeth', short:'Brush teeth', hideRough:false, text:'Brush teeth' },
+  { id:'bed', short:'Out of bed', hideRough:true, text:'Out of bed, even when I feel like shit' },
+  { id:'teeth', short:'Brush teeth', hideRough:true, text:'Brush teeth' },
   { id:'shower', short:'Shower', hideRough:true, text:'Shower' },
   { id:'moist', short:'Moisturise', hideRough:true, text:'Moisturise' },
   { id:'food', short:'Breakfast', hideRough:true, text:"When breakfast happens, eggs if I feel well, easy food if I don't." },
-  { id:'tea', short:'Kitchen closed', hideRough:false, text:'Tea is finished by about 7, then the kitchen stays closed.' },
+  { id:'tea', short:'Kitchen closed', hideRough:true, text:'Tea is finished by about 7, then the kitchen stays closed.' },
   { id:'meds-am', short:'Morning meds', hideRough:false, text:'When breakfast happens, I take morning meds.' },
-  { id:'meds-pm', short:'Night tablet', hideRough:false, text:'When the kitchen is closed, I take the night tablet.' }
+  { id:'meds-pm', short:'Night tablet', hideRough:true, text:'When the kitchen is closed, I take the night tablet.' }
 ];
 
 const BLOCK_INTENT = /\b(gym|gyms|walk|walking|pt|whoop|steps?|calories?|calorie|protein|proteins)\b|personal training/i;
@@ -125,6 +125,7 @@ function londonHour(d = new Date()) {
   }).format(d));
 }
 function intentBlocked(text) { return BLOCK_INTENT.test(text || ''); }
+function onRoughList(id) { return id === 'alarm' || id === 'meds-am'; }
 
 async function sha256(text) {
   const data = new TextEncoder().encode(text);
@@ -311,7 +312,7 @@ function addPreset(dateKey, id) {
   if (!preset) return;
   const d = ensureDiary(dateKey);
   const day = d.days[dateKey];
-  if (day.rough && preset.hideRough) return;
+  if (day.rough && !onRoughList(id)) return;
   if ((day.intentions || []).some((i) => i.id === id)) return;
   day.intentions.push({ id: preset.id, text: preset.text, done: false, why: '', hideRough: !!preset.hideRough });
   orderIntentions(day.intentions);
@@ -524,7 +525,7 @@ function renderLock() {
   document.getElementById('tabs').style.display = 'none';
   document.getElementById('app').innerHTML = `
     <div class="topbar"><h1>Rich On Health</h1></div>
-    <p class="meta">v9 · PIN gate</p>
+    <p class="meta">v10 · PIN gate</p>
     <p class="sub">${setup ? 'Set a PIN (min 4). Stays on this phone.' : 'Enter PIN to unlock.'}</p>
     <div class="card">
       <input class="field" id="pin-input" type="password" inputmode="numeric" autocomplete="one-time-code" placeholder="${setup?'Create PIN':'PIN'}" />
@@ -661,9 +662,9 @@ function renderDiary() {
   const day = d.days[dateKey];
   const rough = !!day.rough;
   const all = day.intentions || [];
-  const visible = all.filter((i) => !(rough && i.hideRough));
+  const visible = all.filter((i) => !rough || onRoughList(i.id));
   const have = new Set(all.map((i) => i.id));
-  const chips = DIARY_DEFAULTS.filter((x) => !have.has(x.id) && !(rough && x.hideRough));
+  const chips = DIARY_DEFAULTS.filter((x) => !have.has(x.id) && !(rough && !onRoughList(x.id)));
   const eod = !!day.eod || londonHour() >= 19;
   const open = visible.filter((i) => !i.done);
   const showAm = !day.prayerAmSeen && state.prayerPanel !== 'pm';
@@ -694,8 +695,8 @@ function renderDiary() {
     <div class="card">
       <button type="button" class="day-btn ${rough ? 'active' : ''}" id="rough-btn" aria-pressed="${rough ? 'true' : 'false'}">${rough ? 'Rough morning on' : 'Rough morning'}</button>
       <p class="meta">${rough
-        ? 'Shower, moisturise, and breakfast detail are hidden. Alarm stays: feet on the floor, no snooze.'
-        : 'If the morning is rough, shower, moisturise, and breakfast detail come off the list.'}</p>
+        ? 'Only the first alarm and morning meds are on the list.'
+        : 'If the morning is rough, only the first alarm and morning meds stay on the list.'}</p>
     </div>
     <div class="card"><h2>Intentions</h2>
       <p class="meta">Tick what happens. Add or remove a line.</p>
