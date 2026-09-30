@@ -109,7 +109,7 @@ const DIARY_DEFAULTS = [
   { id:'food', short:'Breakfast', hideRough:true, text:"When breakfast happens, eggs if I feel well, easy food if I don't." },
   { id:'tea', short:'Kitchen closed', hideRough:true, text:'Tea is finished by about 7, then the kitchen stays closed.' },
   { id:'meds-am', short:'Morning meds', hideRough:false, text:'When breakfast happens, I take morning meds.' },
-  { id:'meds-pm', short:'Night tablet', hideRough:true, text:'When the kitchen is closed, I take the night tablet.' }
+  { id:'meds-pm', short:'Night tablet', hideRough:false, text:'When the kitchen is closed, I take the night tablet.' }
 ];
 
 const BLOCK_INTENT = /\b(gym|gyms|walk|walking|pt|whoop|steps?|calories?|calorie|protein|proteins)\b|personal training/i;
@@ -125,7 +125,7 @@ function londonHour(d = new Date()) {
   }).format(d));
 }
 function intentBlocked(text) { return BLOCK_INTENT.test(text || ''); }
-function onRoughList(id) { return id === 'alarm' || id === 'meds-am'; }
+function onRoughList(id) { return id === 'alarm' || id === 'meds-am' || id === 'meds-pm'; }
 
 async function sha256(text) {
   const data = new TextEncoder().encode(text);
@@ -525,7 +525,7 @@ function renderLock() {
   document.getElementById('tabs').style.display = 'none';
   document.getElementById('app').innerHTML = `
     <div class="topbar"><h1>Rich On Health</h1></div>
-    <p class="meta">v10 · PIN gate</p>
+    <p class="meta">v11 · PIN gate</p>
     <p class="sub">${setup ? 'Set a PIN (min 4). Stays on this phone.' : 'Enter PIN to unlock.'}</p>
     <div class="card">
       <input class="field" id="pin-input" type="password" inputmode="numeric" autocomplete="one-time-code" placeholder="${setup?'Create PIN':'PIN'}" />
@@ -669,10 +669,12 @@ function renderDiary() {
   const open = visible.filter((i) => !i.done);
   const showAm = !day.prayerAmSeen && state.prayerPanel !== 'pm';
   const showPm = state.prayerPanel === 'pm';
+  const prayerBody = showPm
+    ? "Thank You for what got done.\nI put down what I didn't finish, without punishing myself.\nRest is enough for tonight.\nAmen."
+    : "Thank You for this day.\nHelp me take the first small step.\nI don't have to fix everything this morning.\nAmen.";
   const prayer = (showAm || showPm) ? `<div class="card prayer-panel" id="prayer-panel">
-      <div class="placeholder-mark">Placeholder</div>
       <h2>${showPm ? 'Evening prayer' : 'Morning prayer'}</h2>
-      <div class="prayer">${showPm ? 'Evening prayer wording comes from Wellbeing.' : 'Morning prayer wording comes from Wellbeing.'}</div>
+      <div class="prayer">${esc(prayerBody)}</div>
       <button type="button" class="btn ghost" id="prayer-dismiss">Dismiss</button>
     </div>` : '';
   const rows = visible.map((i) => `<div class="intent ${i.done ? 'is-done' : ''}">
@@ -695,8 +697,8 @@ function renderDiary() {
     <div class="card">
       <button type="button" class="day-btn ${rough ? 'active' : ''}" id="rough-btn" aria-pressed="${rough ? 'true' : 'false'}">${rough ? 'Rough morning on' : 'Rough morning'}</button>
       <p class="meta">${rough
-        ? 'Only the first alarm and morning meds are on the list.'
-        : 'If the morning is rough, only the first alarm and morning meds stay on the list.'}</p>
+        ? 'Only the first alarm, morning meds, and the night tablet are on the list.'
+        : 'If the morning is rough, only the first alarm, morning meds, and the night tablet stay on the list.'}</p>
     </div>
     <div class="card"><h2>Intentions</h2>
       <p class="meta">Tick what happens. Add or remove a line.</p>
@@ -757,7 +759,7 @@ function renderMind() {
   return `<div class="topbar"><h1>Mind</h1></div>
     <p class="sub">Check-ins · not a score</p>
     ${dayStrip(dateKey)}
-    <div class="card"><strong>Prayer</strong><div class="meta">Morning and evening prayer open on Diary. Wording comes from Wellbeing.</div></div>
+    <div class="card"><strong>Prayer</strong><div class="meta">Morning and evening prayer open on Diary.</div></div>
     <div class="card"><strong>Check-ins</strong>
       <ul><li>7am gratitude / affirmation / win</li><li>10am steady / rushed / talking down</li><li>1pm depleted / wired / steady</li><li>5pm follow-through + kinder sentence</li><li>8pm put down + kind close</li></ul>
       <div class="row">${doneBtn(dateKey,'mind','c7','7am')}${doneBtn(dateKey,'mind','c10','10am')}${doneBtn(dateKey,'mind','c13','1pm')}</div>
