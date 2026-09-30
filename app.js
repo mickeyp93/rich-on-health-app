@@ -663,6 +663,33 @@ function renderToday() {
     </div>`;
 }
 
+const PRAYER_AM = [
+  "Thank You for this day.\nForgive me for what I held onto yesterday.\nHelp me take the first small step.\nAmen.",
+  "Thank You for this day.\nHelp me be a good person in the next small thing, not in a speech.\nAmen.",
+  "Thank You for this day.\nI want to be great at the work in front of me.\nStart me with one small step.\nAmen.",
+  "Thank You for health in this body today.\nHelp me look after it in the next small step.\nAmen.",
+  "Thank You for this day.\nI want wealth that is clean and earned.\nHelp me do the next honest piece of work.\nAmen.",
+  "Thank You for this day.\nForgive me where I was harsh.\nHelp me be kinder in the next conversation.\nAmen.",
+  "Thank You for this day.\nI don't have to fix everything this morning.\nHelp me be good, and take the first step.\nAmen."
+];
+const PRAYER_PM = [
+  "Thank You for what got done.\nI forgive myself for what I left.\nRest is enough for tonight.\nAmen.",
+  "Thank You for the moments I was a good person today.\nI put down the rest without punishing myself.\nAmen.",
+  "Thank You for any greatness that was quiet today.\nWhat I didn't finish can wait.\nAmen.",
+  "Thank You for the health I had today.\nThe body can rest now.\nAmen.",
+  "Thank You for any honest work I did toward money.\nI put down what I didn't finish.\nAmen.",
+  "Thank You for forgiveness I gave or received.\nI don't have to replay the day.\nAmen.",
+  "Thank You for this day.\nI was not perfect.\nRest is enough for tonight.\nAmen."
+];
+function prayerForDay(dateKey) {
+  const [y, m, d] = dateKey.split("-").map(Number);
+  const utc = Date.UTC(y, m - 1, d);
+  const start = Date.UTC(y, 0, 0);
+  const doy = Math.floor((utc - start) / 86400000);
+  const i = ((doy % 7) + 7) % 7;
+  return { am: PRAYER_AM[i], pm: PRAYER_PM[i] };
+}
+
 function renderDiary() {
   const dateKey = state.dayKey;
   const d = ensureDiary(dateKey);
@@ -677,9 +704,8 @@ function renderDiary() {
   const open = visible.filter((i) => !i.done);
   const showAm = !day.prayerAmSeen && state.prayerPanel !== 'pm';
   const showPm = state.prayerPanel === 'pm';
-  const prayerBody = showPm
-    ? "Thank You for what got done.\nI put down what I didn't finish, without punishing myself.\nRest is enough for tonight.\nAmen."
-    : "Thank You for this day.\nHelp me take the first small step.\nI don't have to fix everything this morning.\nAmen.";
+  const prayerSet = prayerForDay(dateKey);
+  const prayerBody = showPm ? prayerSet.pm : prayerSet.am;
   const prayer = (showAm || showPm) ? `<div class="card prayer-panel" id="prayer-panel">
       <h2>${showPm ? 'Evening prayer' : 'Morning prayer'}</h2>
       <div class="prayer">${esc(prayerBody)}</div>
