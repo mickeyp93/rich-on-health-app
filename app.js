@@ -664,22 +664,22 @@ function renderToday() {
 }
 
 const PRAYER_AM = [
-  "Thank You for this day.\nForgive me for what I held onto yesterday.\nHelp me take the first small step.\nAmen.",
-  "Thank You for this day.\nHelp me be a good person in the next small thing, not in a speech.\nAmen.",
-  "Thank You for this day.\nI want to be great at the work in front of me.\nStart me with one small step.\nAmen.",
-  "Thank You for health in this body today.\nHelp me look after it in the next small step.\nAmen.",
-  "Thank You for this day.\nI want wealth that is clean and earned.\nHelp me do the next honest piece of work.\nAmen.",
-  "Thank You for this day.\nForgive me where I was harsh.\nHelp me be kinder in the next conversation.\nAmen.",
-  "Thank You for this day.\nI don't have to fix everything this morning.\nHelp me be good, and take the first step.\nAmen."
+  "Thank You for another morning. I forgive myself for yesterday, and I start clean. Amen.",
+  "Help me be a good person in the next small thing, not in a performance. Amen.",
+  "I am allowed to become great. Today that is the first small step, done properly. Amen.",
+  "I ask for health in this body, and the sense to rest when I need it. Amen.",
+  "I ask to be rich in health and in wealth, built steadily, not in a panic. Amen.",
+  "Help me be good, and great, in the same day, without crushing myself. Amen.",
+  "Rich in health, rich in wealth, and still kind. That is the life I'm building. Amen."
 ];
 const PRAYER_PM = [
-  "Thank You for what got done.\nI forgive myself for what I left.\nRest is enough for tonight.\nAmen.",
-  "Thank You for the moments I was a good person today.\nI put down the rest without punishing myself.\nAmen.",
-  "Thank You for any greatness that was quiet today.\nWhat I didn't finish can wait.\nAmen.",
-  "Thank You for the health I had today.\nThe body can rest now.\nAmen.",
-  "Thank You for any honest work I did toward money.\nI put down what I didn't finish.\nAmen.",
-  "Thank You for forgiveness I gave or received.\nI don't have to replay the day.\nAmen.",
-  "Thank You for this day.\nI was not perfect.\nRest is enough for tonight.\nAmen."
+  "I forgive what I left undone. I am still a good person tonight. Amen.",
+  "Where I was kind today, thank You. Where I wasn't, I can try again tomorrow. Amen.",
+  "Greatness is the work I actually did, not the work I imagined. That is enough tonight. Amen.",
+  "Thank You for the health I had today. I put the body down to rest. Amen.",
+  "Thank You for what I earned and what I protected today. The rest can wait until morning. Amen.",
+  "I forgive the gap between who I am and who I'm becoming. Amen.",
+  "Thank You. I forgive the day. I rest. Amen."
 ];
 function prayerForDay(dateKey) {
   const [y, m, d] = dateKey.split("-").map(Number);
