@@ -1,13 +1,13 @@
 {
-  "updatedAt": "2026-09-29T07:28:00+01:00",
-  "date": "2026-09-29",
-  "whoopMode": "normal",
+  "updatedAt": "2026-09-30T07:25:00+01:00",
+  "date": "2026-09-30",
+  "whoopMode": "ease",
   "steps": {
     "baseGoal": 10000,
     "yesterday": null,
     "carry": 0,
     "todayGoal": 10000,
-    "note": "Whoop session expired on box; steps/carry left at base until re-login."
+    "note": "Whoop web still does not show steps; carry left at base (10k)."
   },
-  "focus": "Tue class 9:00 \u00b7 steps 10k \u00b7 water \u00b7 morning prayer"
+  "focus": "Wed PT 10:00 · ease · steps 10k · water · morning prayer"
 }
