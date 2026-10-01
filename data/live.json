@@ -1,7 +1,7 @@
 {
-  "updatedAt": "2026-09-30T07:25:00+01:00",
-  "date": "2026-09-30",
-  "whoopMode": "ease",
+  "updatedAt": "2026-10-01T07:26:00+01:00",
+  "date": "2026-10-01",
+  "whoopMode": "protect-sleep",
   "steps": {
     "baseGoal": 10000,
     "yesterday": null,
@@ -9,5 +9,5 @@
     "todayGoal": 10000,
     "note": "Whoop web still does not show steps; carry left at base (10k)."
   },
-  "focus": "Wed PT 10:00 · ease · steps 10k · water · morning prayer"
+  "focus": "protect sleep · gentle day · steps 10k · water · morning prayer"
 }
