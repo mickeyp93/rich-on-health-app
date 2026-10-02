@@ -1,13 +1,13 @@
 {
-  "updatedAt": "2026-10-01T07:26:00+01:00",
-  "date": "2026-10-01",
-  "whoopMode": "protect-sleep",
+  "updatedAt": "2026-10-02T07:21:48+01:00",
+  "date": "2026-10-02",
+  "whoopMode": "normal",
   "steps": {
     "baseGoal": 10000,
     "yesterday": null,
     "carry": 0,
     "todayGoal": 10000,
-    "note": "Whoop web still does not show steps; carry left at base (10k)."
+    "note": "Whoop overnight scores not ready yet for 2 Oct; steps still not on Whoop web; carry left at base (10k)."
   },
-  "focus": "protect sleep · gentle day · steps 10k · water · morning prayer"
+  "focus": "Whoop pending \u00b7 steps 10k \u00b7 PT 10:00 \u00b7 water \u00b7 morning prayer"
 }
