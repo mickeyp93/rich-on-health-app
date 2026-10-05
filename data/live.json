@@ -1,13 +1,13 @@
 {
-  "updatedAt": "2026-10-04T07:17:42+01:00",
-  "date": "2026-10-04",
+  "updatedAt": "2026-10-05T07:25:00+01:00",
+  "date": "2026-10-05",
   "whoopMode": "normal",
   "steps": {
     "baseGoal": 10000,
     "yesterday": null,
     "carry": 0,
     "todayGoal": 10000,
-    "note": "Whoop box browser signed out (sign-in page); overnight metrics and Oct 3 steps unavailable; carry left at base (10k)."
+    "note": "Whoop recovery 48% (yellow), sleep 83% (7:11 of 7:52), HRV 43 ms, RHR 66 bpm. Sun 4 Oct steps not shown on Whoop web; carry left at base (10k)."
   },
-  "focus": "Whoop pending · steps 10k · rest day (Sun) · water · morning prayer"
+  "focus": "PT 10:00 first · steady not grind · steps 10k · water · morning prayer"
 }
