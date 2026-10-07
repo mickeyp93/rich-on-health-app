@@ -1,13 +1,13 @@
 {
-  "updatedAt": "2026-10-06T07:25:00+01:00",
-  "date": "2026-10-06",
+  "updatedAt": "2026-10-07T07:26:00+01:00",
+  "date": "2026-10-07",
   "whoopMode": "normal",
   "steps": {
     "baseGoal": 10000,
     "yesterday": null,
     "carry": 0,
     "todayGoal": 10000,
-    "note": "Whoop signed out in the box browser this morning, so recovery, sleep, HRV and RHR weren't pulled. Mon 5 Oct steps not available; carry left at base (10k)."
+    "note": "Whoop signed out in the box browser this morning, so recovery, sleep, HRV and RHR weren't pulled. Tue 6 Oct steps not available; carry left at base (10k)."
   },
-  "focus": "Class 9:00 first · steady not grind · steps 10k · water · morning prayer"
+  "focus": "PT 10:00 first · steady not grind · steps 10k · water · morning prayer"
 }
